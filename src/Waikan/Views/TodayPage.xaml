@@ -1,0 +1,309 @@
+<UserControl x:Class="Waikan.Views.TodayPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:Waikan.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="720">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="0,0,4,0">
+        <StackPanel>
+            <!-- Header -->
+            <Grid Margin="0,0,0,22">
+                <StackPanel>
+                    <TextBlock Text="今天" Style="{StaticResource PageTitleStyle}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding TodayDateTitle}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="7,2"
+                                Margin="9,-1,0,0">
+                            <TextBlock Text="{Binding TodayWeekday}"
+                                       FontSize="10.5"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </Border>
+                        <TextBlock Text="所有记录都保存在这台电脑"
+                                   FontSize="11.5"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   Margin="10,1,0,0" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Border Style="{StaticResource BadgeBorderStyle}" ToolTip="{Binding StatusDetail}">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{DynamicResource TextTertiaryBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsListening}" Value="True">
+                                                <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding HasEngineError}" Value="True">
+                                                <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding EngineStateText}"
+                                       FontSize="11.5"
+                                       FontWeight="SemiBold"
+                                       Margin="7,0,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource IconButtonStyle}"
+                            Content="&#xE72C;"
+                            Command="{Binding Commands.RefreshTodayCommand}"
+                            ToolTip="刷新今日记录"
+                            Margin="8,0,0,0" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Main cards -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.72*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Counter / timeline -->
+                <Border Grid.Column="0"
+                        Style="{StaticResource CardBorderStyle}"
+                        Padding="28,24,28,20">
+                    <StackPanel>
+                        <Grid>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
+                                    <TextBlock Text="今天听到「外刊」"
+                                               FontSize="12.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Margin="8,0,0,0" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <TextBlock Text="{Binding TodayCount}"
+                                               FontFamily="Segoe UI Variable Display, Microsoft YaHei UI"
+                                               FontSize="88"
+                                               FontWeight="Bold"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               LineHeight="96"
+                                               LineStackingStrategy="BlockLineHeight" />
+                                    <TextBlock Text="次"
+                                               FontSize="18"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Margin="10,0,0,18"
+                                               VerticalAlignment="Bottom" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding TodayLastTime}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </StackPanel>
+                            <Border HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Background="{DynamicResource AccentSoftBrush}"
+                                    CornerRadius="12"
+                                    Padding="12,8"
+                                    Margin="10,8,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="今日频率"
+                                               FontSize="9.5"
+                                               Foreground="{DynamicResource AccentBrush}"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding TodayPeakHour}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                               Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <controls:DayTimelineControl x:Name="Timeline"
+                                                     Height="70"
+                                                     Margin="0,20,0,0"
+                                                     Times="{Binding TodayTimelineTimes}"
+                                                     LineBrush="{DynamicResource BorderStrongBrush}"
+                                                     TickBrush="{DynamicResource BorderStrongBrush}"
+                                                     MarkerBrush="{DynamicResource AccentBrush}"
+                                                     LabelBrush="{DynamicResource TextTertiaryBrush}" />
+
+                        <Grid Margin="0,12,0,0">
+                            <TextBlock Text="每一次触发都会记录精确到秒的时间点"
+                                       Style="{StaticResource TinyCaptionStyle}" />
+                            <TextBlock Text="等待第一声「外刊」…"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       HorizontalAlignment="Right"
+                                       Visibility="{Binding TodayHasOccurrences, Converter={StaticResource InverseBoolToVisibility}}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Overview -->
+                <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Padding="22">
+                    <StackPanel>
+                        <TextBlock Text="今日概况" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Text="关键时间与来源" Style="{StaticResource TinyCaptionStyle}" Margin="0,5,0,18" />
+
+                        <Grid Margin="0,0,0,13">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="首次出现" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding TodayFirstTime}" Style="{StaticResource MonoTimeStyle}" />
+                        </Grid>
+                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,13" />
+                        <Grid Margin="0,0,0,13">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="最活跃时段" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding TodayPeakHour}" Style="{StaticResource MetricValueStyle}" FontSize="12.5" />
+                        </Grid>
+                        <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,0,0,13" />
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="声音来源" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding TodaySource}" Style="{StaticResource MetricValueStyle}" FontSize="12.5" />
+                        </Grid>
+
+                        <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="12"
+                                Padding="13,11">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72E;"
+                                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                               FontSize="11"
+                                               Foreground="{DynamicResource SuccessBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="本地离线"
+                                               FontSize="10.5"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                               Margin="6,0,0,0" />
+                                </StackPanel>
+                                <TextBlock Text="识别在本机完成，音频不会写入磁盘。"
+                                           Style="{StaticResource TinyCaptionStyle}"
+                                           Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <Button Style="{StaticResource GhostButtonStyle}"
+                                Command="{Binding Commands.NavigateCommand}"
+                                CommandParameter="Records"
+                                HorizontalContentAlignment="Left"
+                                Padding="0,10,0,0"
+                                Margin="0,4,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="查看全部时间记录" FontSize="12" FontWeight="SemiBold" />
+                                <TextBlock Text="&#xE76C;"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="10"
+                                           Margin="6,1,0,0"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- All time points -->
+            <Border Style="{StaticResource CardBorderStyle}" Margin="0,18,0,0" Padding="22,20">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="今天的每一个时间点" Style="{StaticResource CardTitleStyle}" />
+                            <TextBlock Text="按出现先后排列，可复制时间用于回顾"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Style="{StaticResource BadgeBorderStyle}"
+                                Padding="9,4">
+                            <TextBlock FontSize="10.5" Foreground="{DynamicResource TextSecondaryBrush}">
+                                <Run Text="共 " />
+                                <Run Text="{Binding TodayCount, Mode=OneWay}" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}" />
+                                <Run Text=" 次" />
+                            </TextBlock>
+                        </Border>
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding TodayOccurrences}" Margin="0,16,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="9,5"
+                                        Margin="0,0,7,7"
+                                        ToolTip="{Binding RelativeText}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TimeText}"
+                                                   FontFamily="Cascadia Mono, Consolas"
+                                                   FontSize="11.5"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{Binding SourceText}"
+                                                   FontSize="9.5"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   Margin="7,1,0,0"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="18"
+                            Margin="0,12,0,0"
+                            Visibility="{Binding TodayHasOccurrences, Converter={StaticResource InverseBoolToVisibility}}">
+                        <StackPanel HorizontalAlignment="Center">
+                            <TextBlock Text="还没有捕捉到「外刊」"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Text="保持麦克风开启，正常说话就会自动识别并计数。"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Margin="0,5,0,0"
+                                       HorizontalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Waikan/Waikan.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Waikan.Tests/Waikan.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/KwsProbe/KwsProbe.csproj" />
+  </Folder>
+</Solution>

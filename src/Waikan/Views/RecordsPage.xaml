@@ -1,0 +1,393 @@
+<UserControl x:Class="Waikan.Views.RecordsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="760">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="0,0,4,0">
+        <StackPanel>
+            <!-- Header -->
+            <Grid Margin="0,0,0,22">
+                <StackPanel>
+                    <TextBlock Text="时间记录" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="像查看日志一样，自由编辑时间区间，回看每一次「外刊」。"
+                               Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding Commands.ExportRangeCommand}"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;"
+                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="导出 CSV" Margin="7,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource DangerButtonStyle}"
+                            Command="{Binding Commands.DeleteRangeCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;"
+                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="清理区间" Margin="7,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Range filter -->
+            <Border Style="{StaticResource CardBorderStyle}" Padding="22,20">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="查看时间区间" Style="{StaticResource CardTitleStyle}" />
+                            <TextBlock Text="输入任意开始和结束时间，精确到秒。应用后会立即统计该区间。"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding RangeCaption}"
+                                   Style="{StaticResource TinyCaptionStyle}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top"
+                                   Margin="12,3,0,0"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxWidth="340" />
+                    </Grid>
+
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="30" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="开始" Style="{StaticResource MetricLabelStyle}" Margin="1,0,0,6" />
+                            <TextBox Text="{Binding RangeStartText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputTextBoxStyle}"
+                                     FontFamily="Cascadia Mono, Consolas"
+                                     ToolTip="格式：yyyy-MM-dd HH:mm:ss" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="→"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Bottom"
+                                   Margin="0,0,0,10"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="结束" Style="{StaticResource MetricLabelStyle}" Margin="1,0,0,6" />
+                            <TextBox Text="{Binding RangeEndText, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource InputTextBoxStyle}"
+                                     FontFamily="Cascadia Mono, Consolas"
+                                     ToolTip="格式：yyyy-MM-dd HH:mm:ss" />
+                        </StackPanel>
+                        <Button Grid.Column="3"
+                                Content="应用区间"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding Commands.ApplyRangeCommand}"
+                                VerticalAlignment="Bottom"
+                                Height="35"
+                                Padding="18,0"
+                                Margin="12,0,0,0" />
+                    </Grid>
+
+                    <WrapPanel Margin="0,13,0,0">
+                        <TextBlock Text="快捷区间"
+                                   Style="{StaticResource TinyCaptionStyle}"
+                                   VerticalAlignment="Center"
+                                   Margin="1,0,10,0" />
+                        <Button Content="今天"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding Commands.PresetTodayCommand}"
+                                Margin="0,0,6,4" />
+                        <Button Content="昨天"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding Commands.PresetYesterdayCommand}"
+                                Margin="0,0,6,4" />
+                        <Button Content="近 7 天"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding Commands.PresetLast7Command}"
+                                Margin="0,0,6,4" />
+                        <Button Content="近 30 天"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding Commands.PresetLast30Command}"
+                                Margin="0,0,6,4" />
+                        <Button Content="本月"
+                                Style="{StaticResource ChipButtonStyle}"
+                                Command="{Binding Commands.PresetThisMonthCommand}"
+                                Margin="0,0,6,4" />
+                    </WrapPanel>
+
+                    <TextBlock Text="{Binding RangeError}"
+                               Foreground="{DynamicResource DangerBrush}"
+                               FontSize="11.5"
+                               Margin="1,9,0,0"
+                               Visibility="{Binding HasRangeError, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Summary -->
+            <Grid Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource SubtleCardBorderStyle}" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="区间总数" Style="{StaticResource MetricLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding RangeTotal}"
+                                           FontFamily="Segoe UI Variable Display, Microsoft YaHei UI"
+                                           FontSize="28"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AccentBrush}" />
+                                <TextBlock Text=" 次" FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="&#xE823;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top" />
+                    </Grid>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource SubtleCardBorderStyle}" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="有记录的天数" Style="{StaticResource MetricLabelStyle}" />
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding RangeDayCount}"
+                                           FontFamily="Segoe UI Variable Display, Microsoft YaHei UI"
+                                           FontSize="28"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock Text=" 天" FontSize="11.5" Foreground="{DynamicResource TextTertiaryBrush}" VerticalAlignment="Bottom" Margin="0,0,0,5" />
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="&#xE787;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top" />
+                    </Grid>
+                </Border>
+                <Border Grid.Column="4" Style="{StaticResource SubtleCardBorderStyle}" Padding="16,14">
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="最高单日" Style="{StaticResource MetricLabelStyle}" />
+                            <TextBlock Text="{Binding RangePeakDay}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                       Margin="0,7,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="&#xE9D2;"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Histogram -->
+            <Border Style="{StaticResource CardBorderStyle}" Margin="0,14,0,0" Padding="22,18"
+                    Visibility="{Binding RangeHasRecords, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="每日分布" Style="{StaticResource CardTitleStyle}" />
+                            <TextBlock Text="当前区间内，有记录日期的次数分布"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Margin="0,4,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="最近 31 个有记录的日期"
+                                   Style="{StaticResource TinyCaptionStyle}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Top" />
+                    </Grid>
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  Margin="0,14,0,0">
+                        <ItemsControl ItemsSource="{Binding RangeBars}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Width="46" Margin="2,0" ToolTip="{Binding AccessibleLabel}">
+                                        <TextBlock Text="{Binding Count}"
+                                                   FontSize="10.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,0,0,4" />
+                                        <Grid Height="72">
+                                            <Border Width="22"
+                                                    Height="{Binding Height}"
+                                                    CornerRadius="5"
+                                                    VerticalAlignment="Bottom">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource BorderStrongBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Label}"
+                                                   FontSize="9.5"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   Margin="0,5,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- Records -->
+            <Grid Margin="0,20,0,10">
+                <StackPanel>
+                    <TextBlock Text="记录明细" Style="{StaticResource SectionTitleStyle}" />
+                    <TextBlock Text="{Binding RangeCaption}"
+                               Style="{StaticResource TinyCaptionStyle}"
+                               Margin="0,5,0,0" />
+                </StackPanel>
+                <TextBlock Text="点击右侧垃圾桶图标可删除误识别记录"
+                           Style="{StaticResource TinyCaptionStyle}"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Bottom" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding RangeDayGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{DynamicResource SurfaceBrush}"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="16"
+                                Margin="0,0,0,10"
+                                Padding="0">
+                            <StackPanel>
+                                <Grid Margin="19,14,15,10">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DateTitle}"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Subtitle}"
+                                                   FontSize="10.5"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   VerticalAlignment="Center"
+                                                   Margin="9,1,0,0" />
+                                    </StackPanel>
+                                    <Border HorizontalAlignment="Right"
+                                            Background="{DynamicResource SurfaceRaisedBrush}"
+                                            CornerRadius="12"
+                                            Padding="9,3">
+                                        <TextBlock Text="{Binding CountText}"
+                                                   FontSize="10.5"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </Border>
+                                </Grid>
+                                <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="18,0" />
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="0,0,0,1"
+                                                    Padding="19,8,11,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="88" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding TimeText}"
+                                                               Style="{StaticResource MonoTimeStyle}"
+                                                               FontSize="12.5"
+                                                               VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding RelativeText}"
+                                                                   FontSize="10.5"
+                                                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                                                    </StackPanel>
+                                                    <Border Grid.Column="2"
+                                                            Background="{DynamicResource SurfaceRaisedBrush}"
+                                                            CornerRadius="9"
+                                                            Padding="8,3"
+                                                            Margin="0,0,12,0"
+                                                            VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding SourceText}"
+                                                                   FontSize="9.5"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    </Border>
+                                                    <Button Grid.Column="3"
+                                                            Style="{StaticResource IconButtonStyle}"
+                                                            Content="&#xE74D;"
+                                                            Width="29"
+                                                            Height="29"
+                                                            FontSize="12"
+                                                            Foreground="{DynamicResource TextTertiaryBrush}"
+                                                            ToolTip="删除这条记录"
+                                                            Command="{Binding DataContext.Commands.DeleteOccurrenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding Id}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="16"
+                    Padding="30"
+                    Margin="0,0,0,10"
+                    Visibility="{Binding RangeHasRecords, Converter={StaticResource InverseBoolToVisibility}}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="这个区间里没有记录"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="换一个时间区间，或者回到今天继续聆听。"
+                               Style="{StaticResource TinyCaptionStyle}"
+                               HorizontalAlignment="Center"
+                               Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

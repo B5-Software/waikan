@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+dist/
+TestResults/
+build-output-*.txt
+test-results-*.txt
+
+# Local test/preview artifacts
+testdata/
+instruction.txt
+
+# Downloaded model binaries (scripts/fetch-model.ps1 restores them)
+models/download/
+models/kws/*.onnx
+models/kws/tokens.txt
+models/kws/keywords.txt
+
+# IDE / OS
+.vs/
+.vscode/
+*.user
+*.suo
+*.log
+.DS_Store
+Thumbs.db
