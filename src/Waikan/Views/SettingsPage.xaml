@@ -467,6 +467,7 @@
                         </StackPanel>
                         <PasswordBox Grid.Column="1"
                                      Style="{StaticResource InputPasswordBoxStyle}"
+                                     infra:PasswordBoxHelper.Attach="True"
                                      infra:PasswordBoxHelper.BoundPassword="{Binding Settings.CloudSyncKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="粘贴配对客户端密钥" />
                     </Grid>

@@ -18,6 +18,12 @@ public static class PasswordBoxHelper
             FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
             OnBoundPasswordChanged));
 
+    public static readonly DependencyProperty AttachProperty = DependencyProperty.RegisterAttached(
+        "Attach",
+        typeof(bool),
+        typeof(PasswordBoxHelper),
+        new PropertyMetadata(false, OnAttachChanged));
+
     private static readonly DependencyProperty IsUpdatingProperty = DependencyProperty.RegisterAttached(
         "IsUpdating",
         typeof(bool),
@@ -33,6 +39,16 @@ public static class PasswordBoxHelper
         element.SetValue(BoundPasswordProperty, value);
     }
 
+    public static bool GetAttach(DependencyObject element)
+    {
+        return (bool)element.GetValue(AttachProperty);
+    }
+
+    public static void SetAttach(DependencyObject element, bool value)
+    {
+        element.SetValue(AttachProperty, value);
+    }
+
     private static void OnBoundPasswordChanged(DependencyObject element, DependencyPropertyChangedEventArgs args)
     {
         if (element is not PasswordBox passwordBox)
@@ -44,6 +60,23 @@ public static class PasswordBoxHelper
         if (!(bool)passwordBox.GetValue(IsUpdatingProperty))
         {
             passwordBox.Password = args.NewValue as string ?? string.Empty;
+        }
+
+        passwordBox.PasswordChanged += OnPasswordChanged;
+    }
+
+    private static void OnAttachChanged(DependencyObject element, DependencyPropertyChangedEventArgs args)
+    {
+        if (element is not PasswordBox passwordBox || !(bool)args.NewValue)
+        {
+            return;
+        }
+
+        passwordBox.PasswordChanged -= OnPasswordChanged;
+        var bound = GetBoundPassword(passwordBox);
+        if (!string.Equals(passwordBox.Password, bound, StringComparison.Ordinal))
+        {
+            passwordBox.Password = bound;
         }
 
         passwordBox.PasswordChanged += OnPasswordChanged;

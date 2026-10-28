@@ -15,7 +15,7 @@
 推荐使用 NSIS 安装器：
 
 ```text
-Waikan-1.1.0-x64-setup.exe
+Waikan-1.1.1-x64-setup.exe
 ```
 
 安装器会：
@@ -25,7 +25,7 @@ Waikan-1.1.0-x64-setup.exe
 - 写入当前用户的开机启动项（可在应用设置中关闭）；
 - 提供标准卸载程序，卸载时可选择是否同时删除本地识别记录。
 
-也可以在 Releases 下载便携版 `Waikan-win-x64-1.1.0.zip`，解压后直接运行 `Waikan.exe`。便携版首次运行时同样会按应用默认设置启用开机自启。
+也可以在 Releases 下载便携版 `Waikan-win-x64-1.1.1.zip`，解压后直接运行 `Waikan.exe`。便携版首次运行时同样会按应用默认设置启用开机自启。
 
 ## 功能
 
@@ -178,8 +178,8 @@ Waikan-1.1.0-x64-setup.exe
 
 ```text
 dist\Waikan-win-x64\Waikan.exe
-dist\Waikan-win-x64-1.1.0.zip
-dist\Waikan-1.1.0-x64-setup.exe
+dist\Waikan-win-x64-1.1.1.zip
+dist\Waikan-1.1.1-x64-setup.exe
 dist\*.sha256.txt
 ```
 
@@ -198,12 +198,13 @@ dist\*.sha256.txt
 
 ### 测试
 
-当前 38 个测试覆盖：
+当前 39 个测试覆盖：
 
 - 关键词模型真实推理（16 kHz 合成语音正/负样本）
 - SQLite 初始化、插入、区间查询、日统计、并发写入、单条/区间删除
 - SQLite v1 → v2 迁移、同步 ID 生成、待同步队列与标记
 - Cloudflare 同步请求、Bearer 密钥、事件批处理、401 不误标记
+- PasswordBox 密钥双向绑定（空初始值输入场景）
 - 设置序列化、损坏设置回退、参数归一化
 - 时间区间解析、结束时间包含整秒
 - 颜色解析、关键词文件生成、开机自启命令构造
@@ -212,7 +213,7 @@ dist\*.sha256.txt
 - Windows 音频访问拒绝异常识别
 
 ```text
-38 passed, 0 failed
+39 passed, 0 failed
 ```
 
 界面截图由 `tools/UiPreview` 在离屏 WPF 渲染中生成；不是合成示意图。
