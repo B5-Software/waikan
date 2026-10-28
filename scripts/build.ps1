@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $dist = Join-Path $root 'dist'
-$version = '1.0.0'
+$version = '1.1.0'
 $output = Join-Path $dist 'Waikan-win-x64'
 $zip = Join-Path $dist "Waikan-win-x64-$version.zip"
 $hash = Join-Path $dist "Waikan-win-x64-$version.sha256.txt"

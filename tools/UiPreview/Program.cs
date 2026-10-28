@@ -60,11 +60,15 @@ internal static class Program
         settings.RecognitionPaused = true;
         settings.OverlayEnabled = true;
         settings.Theme = AppTheme.Dark;
+        settings.CloudSyncEnabled = false;
+        settings.CloudSyncEndpoint = "https://waikan-view-01.pages.dev";
+        settings.CloudSyncKey = "wk_demo_pairing_key_not_real";
         await settingsService.SaveAsync(settings);
 
         var database = new DatabaseService(paths.DatabasePath, log);
         await database.InitializeAsync();
         await SeedAsync(database);
+        var cloudSync = new CloudSyncService(database, log);
 
         var theme = new ThemeService(log);
         theme.Apply(AppTheme.Dark);
@@ -79,6 +83,7 @@ internal static class Program
             settings,
             settingsService,
             database,
+            cloudSync,
             log,
             dialogs,
             autoStart,
@@ -120,6 +125,18 @@ internal static class Program
         viewModel.CurrentPage = MainPage.Settings;
         await SettleAsync(window);
         Capture(window, "03-settings-dark.png");
+        var settingsPage = FindVisualChildren<Waikan.Views.SettingsPage>(window).FirstOrDefault();
+        var settingsScroller = settingsPage is null
+            ? null
+            : FindVisualChild<ScrollViewer>(settingsPage);
+        if (settingsScroller is not null)
+        {
+            Console.WriteLine($"settings scrollable height={settingsScroller.ScrollableHeight:F0}");
+            if (settingsScroller.Content is FrameworkElement settingsContent)
+            {
+                CaptureElement(settingsContent, "03b-settings-cloud-dark.png");
+            }
+        }
 
         viewModel.CurrentPage = MainPage.About;
         await SettleAsync(window);
@@ -143,6 +160,7 @@ internal static class Program
 
         viewModel.Dispose();
         overlay.Shutdown();
+        cloudSync.Dispose();
         await coordinator.DisposeAsync();
         window.Hide();
         Console.WriteLine("Preview captured.");
@@ -213,6 +231,11 @@ internal static class Program
             panel.Background = window.Background;
         }
 
+        CaptureElement(content, fileName);
+    }
+
+    private static void CaptureElement(FrameworkElement content, string fileName)
+    {
         content.UpdateLayout();
         var dpi = VisualTreeHelper.GetDpi(content);
         var width = Math.Max(1, (int)Math.Ceiling(content.ActualWidth * dpi.DpiScaleX));
@@ -234,6 +257,33 @@ internal static class Program
         var setter = property.GetSetMethod(nonPublic: true)
                      ?? throw new InvalidOperationException($"Setter not found: {propertyName}");
         setter.Invoke(target, new[] { value });
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        foreach (var child in FindVisualChildren<T>(parent))
+        {
+            return child;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match)
+            {
+                yield return match;
+            }
+
+            foreach (var nested in FindVisualChildren<T>(child))
+            {
+                yield return nested;
+            }
+        }
     }
 
     private static void PrepareDirectories()

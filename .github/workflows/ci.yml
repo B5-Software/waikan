@@ -49,10 +49,10 @@ jobs:
           name: waikan-windows-x64
           if-no-files-found: error
           path: |
-            dist/Waikan-1.0.0-x64-setup.exe
-            dist/Waikan-1.0.0-x64-setup.sha256.txt
-            dist/Waikan-win-x64-1.0.0.zip
-            dist/Waikan-win-x64-1.0.0.sha256.txt
+            dist/Waikan-1.1.0-x64-setup.exe
+            dist/Waikan-1.1.0-x64-setup.sha256.txt
+            dist/Waikan-win-x64-1.1.0.zip
+            dist/Waikan-win-x64-1.1.0.sha256.txt
 
       - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -61,9 +61,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "${{ github.ref_name }}" `
-            "dist/Waikan-1.0.0-x64-setup.exe" `
-            "dist/Waikan-1.0.0-x64-setup.sha256.txt" `
-            "dist/Waikan-win-x64-1.0.0.zip" `
-            "dist/Waikan-win-x64-1.0.0.sha256.txt" `
+            "dist/Waikan-1.1.0-x64-setup.exe" `
+            "dist/Waikan-1.1.0-x64-setup.sha256.txt" `
+            "dist/Waikan-win-x64-1.1.0.zip" `
+            "dist/Waikan-win-x64-1.1.0.sha256.txt" `
             --title "这个词在外刊中 ${{ github.ref_name }}" `
             --generate-notes

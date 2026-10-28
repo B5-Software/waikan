@@ -1,6 +1,7 @@
 <UserControl x:Class="Waikan.Views.SettingsPage"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infra="clr-namespace:Waikan.Infrastructure"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
@@ -335,6 +336,198 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Cloudflare viewer -->
+            <Border Style="{StaticResource CardBorderStyle}" Margin="0,0,0,14">
+                <StackPanel>
+                    <Grid Margin="0,0,0,4">
+                        <StackPanel>
+                            <TextBlock Text="Cloudflare 查看器" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="把每次出现的时间与计数同步到一个独立网页。识别仍在本机完成，只上传时间戳和计数。"
+                                       Style="{StaticResource TinyCaptionStyle}"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                        <Border HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                CornerRadius="10"
+                                Padding="9,4">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="ok">
+                                            <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="warn">
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="busy">
+                                            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="error">
+                                            <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="6" Height="6" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{DynamicResource TextTertiaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="ok">
+                                                    <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="warn">
+                                                    <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="busy">
+                                                    <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="error">
+                                                    <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding CloudSyncStatusTitle}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           Margin="7,0,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="ok">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="warn">
+                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="busy">
+                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding CloudSyncStatusTone}" Value="error">
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Height="1" Background="{DynamicResource BorderBrush}" Margin="0,15,0,17" />
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="启用云端同步" Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Text="关闭后不会向任何服务器发送数据，本地计数不受影响。"
+                                       Style="{StaticResource TinyCaptionStyle}" Margin="0,4,20,0" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1"
+                                  Style="{StaticResource SwitchCheckBoxStyle}"
+                                  IsChecked="{Binding Settings.CloudSyncEnabled, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="420" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="查看页地址" Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Text="例如 https://waikan-view-01.pages.dev"
+                                       Style="{StaticResource TinyCaptionStyle}" Margin="0,4,20,0" />
+                        </StackPanel>
+                        <TextBox Grid.Column="1"
+                                 Style="{StaticResource InputTextBoxStyle}"
+                                 Text="{Binding Settings.CloudSyncEndpoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="粘贴配对时生成的 Pages 地址" />
+                    </Grid>
+
+                    <Grid Margin="0,0,0,15">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="420" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="配对密钥" Style="{StaticResource MetricValueStyle}" />
+                            <TextBlock Text="以 wk_ 开头，只保存在本机 settings.json 中。"
+                                       Style="{StaticResource TinyCaptionStyle}" Margin="0,4,20,0" />
+                        </StackPanel>
+                        <PasswordBox Grid.Column="1"
+                                     Style="{StaticResource InputPasswordBoxStyle}"
+                                     infra:PasswordBoxHelper.BoundPassword="{Binding Settings.CloudSyncKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="粘贴配对客户端密钥" />
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Content="测试连接"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding Commands.VerifyCloudConnectionCommand}"
+                                IsEnabled="{Binding IsCloudSyncIdle}"
+                                Margin="0,0,8,0" />
+                        <Button Grid.Column="1"
+                                Content="立即同步"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding Commands.SyncCloudCommand}"
+                                IsEnabled="{Binding IsCloudSyncIdle}"
+                                Margin="0,0,8,0" />
+                        <Button Grid.Column="2"
+                                Style="{StaticResource GhostButtonStyle}"
+                                Command="{Binding Commands.OpenCloudViewerCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE774;"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="11"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Text="打开查看页" Margin="6,0,0,0" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding CloudSyncLastSyncText}"
+                                   Style="{StaticResource TinyCaptionStyle}"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   Margin="14,0,0,0" />
+                    </Grid>
+
+                    <Border Background="{DynamicResource InputBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="13,11"
+                            Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="{Binding CloudSyncStatusDetail}"
+                                       FontSize="11.5"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" />
+                            <Grid Margin="0,7,0,0">
+                                <TextBlock Text="{Binding CloudSyncPendingText}"
+                                           Style="{StaticResource TinyCaptionStyle}" />
+                                <TextBlock Text="查看页公开只读 · 写入需要配对密钥"
+                                           Style="{StaticResource TinyCaptionStyle}"
+                                           HorizontalAlignment="Right" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
 

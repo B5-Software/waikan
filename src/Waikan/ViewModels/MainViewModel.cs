@@ -17,6 +17,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly AppPaths _paths;
     private readonly SettingsService _settingsService;
     private readonly DatabaseService _database;
+    private readonly CloudSyncService _cloudSync;
     private readonly LogService _log;
     private readonly IDialogService _dialogs;
     private readonly AutoStartService _autoStart;
@@ -32,6 +33,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _clockTimer;
     private readonly DispatcherTimer _deviceTimer;
     private readonly DispatcherTimer _engineRestartTimer;
+    private readonly DispatcherTimer _cloudSyncTimer;
+    private readonly DispatcherTimer _cloudSyncDebounceTimer;
+    private readonly SemaphoreSlim _cloudSyncGate = new(1, 1);
 
     private const int MaxHistoryBars = 31;
 
@@ -74,6 +78,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private DateTime _lastRefreshDate = DateTime.Today;
     private Brush _overlayPreviewTextBrush = ColorUtilities.Brush(Color.FromArgb(255, 255, 246, 242));
 
+    private bool _isCloudSyncBusy;
+    private DateTimeOffset? _cloudSyncLastSyncAt;
+    private int _cloudSyncPendingCount;
+    private string _cloudSyncStatusTitle = "未配置";
+    private string _cloudSyncStatusDetail = "填写查看页地址和配对密钥后即可开启云端同步。";
+    private string _cloudSyncStatusTone = "idle";
+
     private SelectionOption<AudioSourceKind> _selectedSourceOption;
     private SelectionOption<AppTheme> _selectedThemeOption;
     private AudioDeviceOption? _selectedAudioDevice;
@@ -83,6 +94,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         AppSettings settings,
         SettingsService settingsService,
         DatabaseService database,
+        CloudSyncService cloudSync,
         LogService log,
         IDialogService dialogs,
         AutoStartService autoStart,
@@ -95,6 +107,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Settings = settings;
         _settingsService = settingsService;
         _database = database;
+        _cloudSync = cloudSync;
         _log = log;
         _dialogs = dialogs;
         _autoStart = autoStart;
@@ -156,6 +169,25 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             _engineRestartTimer.Stop();
             _ = RestartEngineFromSettingsAsync();
+        };
+
+        _cloudSyncTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = TimeSpan.FromMinutes(1) };
+        _cloudSyncTimer.Tick += (_, _) =>
+        {
+            if (_initialized && !_disposed)
+            {
+                _ = SyncCloudAsync(manual: false);
+            }
+        };
+
+        _cloudSyncDebounceTimer = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = TimeSpan.FromSeconds(5) };
+        _cloudSyncDebounceTimer.Tick += (_, _) =>
+        {
+            _cloudSyncDebounceTimer.Stop();
+            if (_initialized && !_disposed)
+            {
+                _ = SyncCloudAsync(manual: false);
+            }
         };
 
         Settings.PropertyChanged += OnSettingsChanged;
@@ -453,6 +485,49 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool IsCloudSyncBusy
+    {
+        get => _isCloudSyncBusy;
+        private set
+        {
+            if (SetProperty(ref _isCloudSyncBusy, value))
+            {
+                OnPropertyChanged(nameof(IsCloudSyncIdle));
+            }
+        }
+    }
+
+    public bool IsCloudSyncIdle => !IsCloudSyncBusy;
+
+    public bool HasCloudSyncConfiguration => Settings.HasCloudSyncConfiguration;
+
+    public string CloudSyncStatusTitle
+    {
+        get => _cloudSyncStatusTitle;
+        private set => SetProperty(ref _cloudSyncStatusTitle, value);
+    }
+
+    public string CloudSyncStatusDetail
+    {
+        get => _cloudSyncStatusDetail;
+        private set => SetProperty(ref _cloudSyncStatusDetail, value);
+    }
+
+    /// <summary>idle, ok, warn, busy or error. Drives the settings badge colors.</summary>
+    public string CloudSyncStatusTone
+    {
+        get => _cloudSyncStatusTone;
+        private set => SetProperty(ref _cloudSyncStatusTone, value);
+    }
+
+    public string CloudSyncLastSyncText => _cloudSyncLastSyncAt is null
+        ? "本次运行尚未成功同步"
+        : $"上次成功同步 {_cloudSyncLastSyncAt.Value.ToLocalTime():MM-dd HH:mm:ss}";
+
+    public string CloudSyncPendingText => _cloudSyncPendingCount <= 0
+        ? "没有待同步记录"
+        : $"{_cloudSyncPendingCount} 条待同步";
+
     public Brush OverlayPreviewTextBrush
     {
         get => _overlayPreviewTextBrush;
@@ -478,10 +553,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         await RefreshTodayAsync();
         await LoadRangeAsync(_rangeFrom, _rangeTo, silent: true);
+        _initialized = true;
+        await RefreshCloudSyncSummaryAsync();
+        InitializeCloudSync();
 
         _clockTimer.Start();
         _deviceTimer.Start();
-        _initialized = true;
         _ = Task.Run(() => MidnightLoopAsync(_lifetimeCts.Token));
 
         if (Settings.RecognitionPaused)
@@ -588,6 +665,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         builder.AppendLine($"设备: {SelectedAudioDevice?.Name ?? "系统默认"}");
         builder.AppendLine($"数据目录: {DataDirectory}");
         builder.AppendLine($"模型目录: {ModelDirectory}");
+        builder.AppendLine($"云端同步: {CloudSyncStatusTitle} / {CloudSyncStatusDetail}");
         builder.AppendLine($"隐私: {PrivacyText}");
         return builder.ToString();
     }
@@ -613,6 +691,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _clockTimer.Stop();
         _deviceTimer.Stop();
         _engineRestartTimer.Stop();
+        _cloudSyncTimer.Stop();
+        _cloudSyncDebounceTimer.Stop();
 
         Settings.PropertyChanged -= OnSettingsChanged;
         _coordinator.StatusChanged -= OnEngineStatusChanged;
@@ -723,6 +803,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 }
                 break;
 
+            case nameof(AppSettings.CloudSyncEnabled):
+            case nameof(AppSettings.CloudSyncEndpoint):
+            case nameof(AppSettings.CloudSyncKey):
+                OnCloudSyncSettingsChanged();
+                break;
+
             case nameof(AppSettings.RecognitionPaused):
                 OnPropertyChanged(nameof(IsRecognitionPaused));
                 OnPropertyChanged(nameof(PauseButtonText));
@@ -781,6 +867,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 {
                     await LoadRangeAsync(_rangeFrom, _rangeTo, silent: true);
                 }
+
+                if (Settings.CloudSyncEnabled && Settings.HasCloudSyncConfiguration)
+                {
+                    _cloudSyncPendingCount = Math.Max(1, _cloudSyncPendingCount + 1);
+                    OnPropertyChanged(nameof(CloudSyncPendingText));
+                    ScheduleCloudSync(TimeSpan.FromSeconds(5));
+                }
             }
             catch (Exception ex)
             {
@@ -823,6 +916,295 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _engineRestartTimer.Stop();
         _engineRestartTimer.Start();
+    }
+
+    private async Task RefreshCloudSyncSummaryAsync()
+    {
+        try
+        {
+            _cloudSyncLastSyncAt = await _database.GetLastSyncedAtAsync(_lifetimeCts.Token);
+            _cloudSyncPendingCount = await _database.GetPendingCountAsync(_lifetimeCts.Token);
+            OnPropertyChanged(nameof(CloudSyncLastSyncText));
+            OnPropertyChanged(nameof(CloudSyncPendingText));
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal shutdown.
+        }
+        catch (Exception ex)
+        {
+            _log.Warn($"读取云端同步状态失败：{ex.Message}");
+        }
+    }
+
+    private void InitializeCloudSync()
+    {
+        RefreshCloudSyncStatus();
+        UpdateCloudSyncTimer();
+        if (Settings.CloudSyncEnabled && Settings.HasCloudSyncConfiguration)
+        {
+            ScheduleCloudSync(TimeSpan.FromSeconds(4));
+        }
+    }
+
+    private void OnCloudSyncSettingsChanged()
+    {
+        OnPropertyChanged(nameof(HasCloudSyncConfiguration));
+        UpdateCloudSyncTimer();
+        if (!IsCloudSyncBusy)
+        {
+            RefreshCloudSyncStatus();
+        }
+
+        if (Settings.CloudSyncEnabled && Settings.HasCloudSyncConfiguration)
+        {
+            ScheduleCloudSync(TimeSpan.FromSeconds(6));
+        }
+    }
+
+    private void UpdateCloudSyncTimer()
+    {
+        if (!_initialized || _disposed
+            || !Settings.CloudSyncEnabled
+            || !Settings.HasCloudSyncConfiguration)
+        {
+            _cloudSyncTimer.Stop();
+            return;
+        }
+
+        _cloudSyncTimer.Start();
+    }
+
+    private void ScheduleCloudSync(TimeSpan delay)
+    {
+        if (_disposed || !Settings.CloudSyncEnabled || !Settings.HasCloudSyncConfiguration)
+        {
+            return;
+        }
+
+        _cloudSyncDebounceTimer.Stop();
+        _cloudSyncDebounceTimer.Interval = delay;
+        _cloudSyncDebounceTimer.Start();
+    }
+
+    private void RefreshCloudSyncStatus()
+    {
+        if (!Settings.CloudSyncEnabled)
+        {
+            SetCloudSyncStatus(
+                "已关闭",
+                Settings.HasCloudSyncConfiguration
+                    ? "打开开关后，本机记录会每 60 秒自动同步一次。"
+                    : "填写查看页地址和配对密钥后可开启云端同步。",
+                "idle");
+            return;
+        }
+
+        if (!Settings.HasCloudSyncConfiguration)
+        {
+            SetCloudSyncStatus(
+                "待配置",
+                "请填写查看页地址和配对密钥，然后点击“测试连接”。",
+                "warn");
+            return;
+        }
+
+        SetCloudSyncStatus(
+            "已启用",
+            $"{CloudSyncPendingText} · 后台每 60 秒同步一次。",
+            "ok");
+    }
+
+    private void SetCloudSyncStatus(string title, string detail, string tone)
+    {
+        CloudSyncStatusTitle = title;
+        CloudSyncStatusDetail = detail;
+        CloudSyncStatusTone = tone;
+    }
+
+    private async Task SyncCloudAsync(bool manual)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (!Settings.HasCloudSyncConfiguration)
+        {
+            SetCloudSyncStatus("待配置", "请先填写查看页地址和配对密钥。", "warn");
+            if (manual)
+            {
+                _dialogs.ShowError("云端同步未配置", "请先在设置中填写 Cloudflare 查看页地址和配对密钥。");
+            }
+
+            return;
+        }
+
+        if (!manual && !Settings.CloudSyncEnabled)
+        {
+            return;
+        }
+
+        if (!await _cloudSyncGate.WaitAsync(0))
+        {
+            if (manual)
+            {
+                _dialogs.ShowInfo("正在同步", "上一次云端同步还没有结束，请稍候。");
+            }
+
+            return;
+        }
+
+        try
+        {
+            IsCloudSyncBusy = true;
+            SetCloudSyncStatus("同步中", "正在把本地记录推送到云端…", "busy");
+            var result = await _cloudSync.SyncAsync(
+                Settings.CloudSyncEndpoint,
+                Settings.CloudSyncKey,
+                _lifetimeCts.Token);
+
+            if (result.Ok)
+            {
+                _cloudSyncLastSyncAt = result.CompletedAt ?? DateTimeOffset.UtcNow;
+                _cloudSyncPendingCount = result.Pending >= 0 ? result.Pending : 0;
+                OnPropertyChanged(nameof(CloudSyncLastSyncText));
+                OnPropertyChanged(nameof(CloudSyncPendingText));
+
+                var detail = result.Uploaded == 0
+                    ? "云端已是最新状态。"
+                    : $"已上传 {result.Uploaded} 条，云端接收 {result.Accepted} 条"
+                      + (result.Duplicates > 0 ? $"，重复 {result.Duplicates} 条。" : "。");
+                if (result.Pending > 0)
+                {
+                    detail += $" 仍有 {result.Pending} 条待同步。";
+                }
+
+                SetCloudSyncStatus("已同步", detail, "ok");
+                if (manual)
+                {
+                    _dialogs.ShowInfo("云端同步完成", detail);
+                }
+            }
+            else
+            {
+                if (result.Pending >= 0)
+                {
+                    _cloudSyncPendingCount = result.Pending;
+                    OnPropertyChanged(nameof(CloudSyncPendingText));
+                }
+
+                SetCloudSyncStatus(
+                    result.Kind == CloudSyncResultKind.Unauthorized ? "密钥无效" : "同步失败",
+                    result.Message,
+                    "error");
+                _log.Warn($"云端同步未完成：{result.Message}");
+                if (manual)
+                {
+                    _dialogs.ShowError("云端同步失败", result.Message);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal shutdown or a superseded request.
+        }
+        catch (Exception ex)
+        {
+            SetCloudSyncStatus("同步失败", $"同步失败：{ex.Message}", "error");
+            _log.Error("云端同步出现异常。", ex);
+            if (manual)
+            {
+                _dialogs.ShowError("云端同步失败", ex.Message);
+            }
+        }
+        finally
+        {
+            IsCloudSyncBusy = false;
+            _cloudSyncGate.Release();
+        }
+    }
+
+    private async Task VerifyCloudConnectionAsync()
+    {
+        if (!Settings.HasCloudSyncConfiguration)
+        {
+            SetCloudSyncStatus("待配置", "请先填写查看页地址和配对密钥。", "warn");
+            _dialogs.ShowError("云端同步未配置", "请先填写 Cloudflare 查看页地址和配对密钥。");
+            return;
+        }
+
+        if (!await _cloudSyncGate.WaitAsync(0))
+        {
+            _dialogs.ShowInfo("正在同步", "后台同步还没有结束，请稍候再测试连接。");
+            return;
+        }
+
+        try
+        {
+            IsCloudSyncBusy = true;
+            SetCloudSyncStatus("验证中", "正在验证站点地址与配对密钥…", "busy");
+            var result = await _cloudSync.VerifyAsync(
+                Settings.CloudSyncEndpoint,
+                Settings.CloudSyncKey,
+                _lifetimeCts.Token);
+
+            if (result.Ok)
+            {
+                var pair = string.IsNullOrWhiteSpace(result.Pair) ? "云端查看页" : result.Pair;
+                var detail = $"已连接到「{pair}」";
+                if (!string.IsNullOrWhiteSpace(result.TimeZone))
+                {
+                    detail += $" · 时区 {result.TimeZone}";
+                }
+
+                SetCloudSyncStatus("已连接", detail, "ok");
+                _dialogs.ShowInfo("连接成功", detail + "\n\n这个密钥只对这一个站点有效。");
+            }
+            else
+            {
+                SetCloudSyncStatus("连接失败", result.Message, "error");
+                _log.Warn($"云端连接验证失败：{result.Message}");
+                _dialogs.ShowError("连接失败", result.Message);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal shutdown.
+        }
+        catch (Exception ex)
+        {
+            SetCloudSyncStatus("连接失败", ex.Message, "error");
+            _log.Error("验证云端连接失败。", ex);
+            _dialogs.ShowError("连接失败", ex.Message);
+        }
+        finally
+        {
+            IsCloudSyncBusy = false;
+            _cloudSyncGate.Release();
+        }
+    }
+
+    private void OpenCloudViewer()
+    {
+        if (!CloudSyncService.TryNormalizeEndpoint(
+                Settings.CloudSyncEndpoint,
+                out var endpoint,
+                out var error))
+        {
+            _dialogs.ShowError("无法打开查看页", error);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo(endpoint) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            _log.Error("打开云端查看页失败。", ex);
+            _dialogs.ShowError("无法打开查看页", ex.Message);
+        }
     }
 
     private async Task RefreshTodayAsync()
@@ -1513,6 +1895,13 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OpenModelFolderCommand = new RelayCommand(() => _owner._dialogs.OpenFolder(_owner.ModelDirectory));
             CopyDiagnosticsCommand = new RelayCommand(_owner.CopyDiagnostics);
             OpenMicrophoneSettingsCommand = new RelayCommand(_owner.OpenMicrophoneSettings);
+            VerifyCloudConnectionCommand = new AsyncRelayCommand(
+                _owner.VerifyCloudConnectionAsync,
+                onException: ex => _owner._log.Error("验证云端连接命令失败。", ex));
+            SyncCloudCommand = new AsyncRelayCommand(
+                () => _owner.SyncCloudAsync(manual: true),
+                onException: ex => _owner._log.Error("云端同步命令失败。", ex));
+            OpenCloudViewerCommand = new RelayCommand(_owner.OpenCloudViewer);
         }
 
         public RelayCommand NavigateCommand { get; }
@@ -1535,6 +1924,9 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         public RelayCommand OpenModelFolderCommand { get; }
         public RelayCommand CopyDiagnosticsCommand { get; }
         public RelayCommand OpenMicrophoneSettingsCommand { get; }
+        public AsyncRelayCommand VerifyCloudConnectionCommand { get; }
+        public AsyncRelayCommand SyncCloudCommand { get; }
+        public RelayCommand OpenCloudViewerCommand { get; }
 
         public void RefreshCanExecute()
         {

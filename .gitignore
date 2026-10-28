@@ -24,3 +24,10 @@ models/kws/keywords.txt
 *.log
 .DS_Store
 Thumbs.db
+
+# Cloudflare viewer deployment artifacts (contain client keys)
+.wrangler/
+cloudflare/.deploy/
+cloudflare/pairs.local.json
+cloudflare/.dev.vars
+cloudflare/.env

@@ -6,7 +6,7 @@
 
 一个原生 Windows 桌面应用：在麦克风里听到「外刊」时自动记下一次，统计每天出现的次数，并把每一次出现的时间点保留下来。
 
-识别过程完全在本机完成。不上传音频，不调用云端接口，不保存录音。
+识别过程完全在本机完成。不上传音频，不保存录音。云端同步是可选功能：如果启用，只会把时间戳、来源和计数推送到你自己的 Cloudflare Pages 查看页。
 
 ![今日](docs/today-dark.png)
 
@@ -15,7 +15,7 @@
 推荐使用 NSIS 安装器：
 
 ```text
-Waikan-1.0.0-x64-setup.exe
+Waikan-1.1.0-x64-setup.exe
 ```
 
 安装器会：
@@ -25,7 +25,7 @@ Waikan-1.0.0-x64-setup.exe
 - 写入当前用户的开机启动项（可在应用设置中关闭）；
 - 提供标准卸载程序，卸载时可选择是否同时删除本地识别记录。
 
-也可以在 Releases 下载便携版 `Waikan-win-x64-1.0.0.zip`，解压后直接运行 `Waikan.exe`。便携版首次运行时同样会按应用默认设置启用开机自启。
+也可以在 Releases 下载便携版 `Waikan-win-x64-1.1.0.zip`，解压后直接运行 `Waikan.exe`。便携版首次运行时同样会按应用默认设置启用开机自启。
 
 ## 功能
 
@@ -39,7 +39,8 @@ Waikan-1.0.0-x64-setup.exe
 - **任务栏托盘**：左键打开主界面；右键菜单可切换悬浮窗、暂停识别、开机自启或退出。
 - **开机后台自启**：安装器默认启用，登录 Windows 后在托盘后台识别，不弹主窗口。
 - **低占用**：3M int8 关键词模型，单线程 CPU 推理；暂停时释放音频采集和识别会话。
-- **离线 & 隐私**：运行时没有网络请求；模型、数据库和日志都在本机。
+- **可选 Cloudflare 查看页**：每个客户端一个独立的 Cloudflare Pages 站点和配对密钥；只同步时间戳、来源与计数，查看页公开只读，写入需要密钥。
+- **默认离线 & 隐私**：不启用云端同步时没有任何网络请求；模型、数据库和日志都在本机。
 
 ## 快速开始
 
@@ -74,6 +75,28 @@ Waikan-1.0.0-x64-setup.exe
 悬浮窗只显示数字本身：
 
 ![悬浮窗](docs/overlay.png)
+
+## Cloudflare 查看页（可选）
+
+桌面端可以把每次出现的时间点同步到一个独立的 Cloudflare Pages 站点。一个配对包含一个 Pages 站点、一个 KV 命名空间和一个客户端密钥，不同客户端的数据完全隔离。
+
+桌面端配对设置：
+
+![Cloudflare 设置](docs/cloud-settings.png)
+
+- 默认关闭；在「设置 → Cloudflare 查看器」中填入站点地址和配对密钥后才会联网。
+- 查看页公开只读，任何拿到链接的人都能看到计数与时间点，请不要把链接当作私密空间。
+- 写入接口使用每个配对独立的 Bearer 密钥；服务端只保存密钥的 SHA-256，原始密钥以明文保存在本机 `settings.json`（以及部署机的 `cloudflare/pairs.local.json`）中，请不要分享这些文件。
+- 只上传事件 ID、时间、本地日期、小时和来源（麦克风/系统声音），不上传音频、文本或设备信息。
+- 桌面端每 60 秒自动同步一次；识别到新词后约 5 秒会触发一次。失败会自动重试，重复事件在服务端按事件 ID 幂等去重。
+- 已同步的记录在本地删除后，云端不会自动删除；云端是一份只增的计数档案。
+- 部署与配对方法见 [cloudflare/README.md](cloudflare/README.md)。
+
+云端的深浅色主题：
+
+| 深色 | 浅色 |
+| --- | --- |
+| ![云端深色](docs/cloud-dark.png) | ![云端浅色](docs/cloud-light.png) |
 
 ## 时间区间
 
@@ -155,8 +178,8 @@ Waikan-1.0.0-x64-setup.exe
 
 ```text
 dist\Waikan-win-x64\Waikan.exe
-dist\Waikan-win-x64-1.0.0.zip
-dist\Waikan-1.0.0-x64-setup.exe
+dist\Waikan-win-x64-1.1.0.zip
+dist\Waikan-1.1.0-x64-setup.exe
 dist\*.sha256.txt
 ```
 
@@ -175,10 +198,12 @@ dist\*.sha256.txt
 
 ### 测试
 
-当前 33 个测试覆盖：
+当前 38 个测试覆盖：
 
 - 关键词模型真实推理（16 kHz 合成语音正/负样本）
 - SQLite 初始化、插入、区间查询、日统计、并发写入、单条/区间删除
+- SQLite v1 → v2 迁移、同步 ID 生成、待同步队列与标记
+- Cloudflare 同步请求、Bearer 密钥、事件批处理、401 不误标记
 - 设置序列化、损坏设置回退、参数归一化
 - 时间区间解析、结束时间包含整秒
 - 颜色解析、关键词文件生成、开机自启命令构造
@@ -187,7 +212,7 @@ dist\*.sha256.txt
 - Windows 音频访问拒绝异常识别
 
 ```text
-33 passed, 0 failed
+38 passed, 0 failed
 ```
 
 界面截图由 `tools/UiPreview` 在离屏 WPF 渲染中生成；不是合成示意图。
@@ -203,6 +228,7 @@ src/Waikan/
   Controls/       24 小时时间轴自定义绘制
   Interop/        DWM / 窗口样式 / 置顶
 tests/Waikan.Tests/
+cloudflare/       Cloudflare Pages 查看页、Functions 与配对部署脚本
 scripts/          build.ps1、build-installer.ps1、installer.nsi、fetch-model.ps1
 tools/KwsProbe/   模型音素与阈值调试工具
 tools/UiPreview/  离屏界面截图工具
@@ -258,11 +284,13 @@ tools/UiPreview/  离屏界面截图工具
 - 检测时间戳按声学延迟做了约 450 ms 校准；不宣称毫秒级精确。
 - 悬浮窗使用普通 Topmost 窗口，无法覆盖独占全屏。
 - 安装器/便携版可执行文件未签名，首次运行可能触发 Windows SmartScreen。
+- 云端查看页是公开只读的；链接泄露即计数与时间点泄露。写入密钥只保护写入，不保护读取。
+- 云端记录目前只增不删；删除本地记录不会删除已同步的云端数据。
 
 ## 开源、隐私与许可
 
 - 源码：<https://github.com/B5-Software/waikan>
-- 运行时无网络访问，不保存音频，不上传文本。
+- 默认运行时无网络访问，不保存音频，不上传文本；只有主动启用 Cloudflare 同步后才会发送时间戳与计数。
 - 本项目的原创源代码与文档以 **CC0 1.0 Universal** 献入公有领域，详见 [LICENSE](LICENSE)。
 - 第三方组件和模型不适用 CC0：
   - 关键词模型来自 [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx)，Apache-2.0；

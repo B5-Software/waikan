@@ -6,7 +6,7 @@ namespace Waikan.Models;
 public sealed class AppSettings : ObservableObject
 {
     public const string DefaultOverlayColor = "#FFF6F2EE";
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private int _schemaVersion = CurrentSchemaVersion;
     private bool _startWithWindows = true;
@@ -20,6 +20,9 @@ public sealed class AppSettings : ObservableObject
     private double _overlayFontSize = 40;
     private AppTheme _theme = AppTheme.System;
     private bool _hasShownTrayHint;
+    private bool _cloudSyncEnabled;
+    private string _cloudSyncEndpoint = string.Empty;
+    private string _cloudSyncKey = string.Empty;
 
     public int SchemaVersion
     {
@@ -97,8 +100,33 @@ public sealed class AppSettings : ObservableObject
         set => SetProperty(ref _hasShownTrayHint, value);
     }
 
+    /// <summary>Pushes new occurrences to the paired Cloudflare Pages viewer.</summary>
+    public bool CloudSyncEnabled
+    {
+        get => _cloudSyncEnabled;
+        set => SetProperty(ref _cloudSyncEnabled, value);
+    }
+
+    /// <summary>Base URL of the Cloudflare Pages viewer, for example https://waikan-view-01.pages.dev.</summary>
+    public string CloudSyncEndpoint
+    {
+        get => _cloudSyncEndpoint;
+        set => SetProperty(ref _cloudSyncEndpoint, (value ?? string.Empty).Trim());
+    }
+
+    /// <summary>Per-pair client key. Only the hash is stored on the server.</summary>
+    public string CloudSyncKey
+    {
+        get => _cloudSyncKey;
+        set => SetProperty(ref _cloudSyncKey, (value ?? string.Empty).Trim());
+    }
+
     [JsonIgnore]
     public bool IsDefaultAudioDevice => string.IsNullOrWhiteSpace(AudioDeviceId);
+
+    [JsonIgnore]
+    public bool HasCloudSyncConfiguration =>
+        !string.IsNullOrWhiteSpace(CloudSyncEndpoint) && !string.IsNullOrWhiteSpace(CloudSyncKey);
 
     public AppSettings Clone()
     {
@@ -124,5 +152,8 @@ public sealed class AppSettings : ObservableObject
         {
             Theme = AppTheme.System;
         }
+
+        CloudSyncEndpoint = (CloudSyncEndpoint ?? string.Empty).Trim();
+        CloudSyncKey = (CloudSyncKey ?? string.Empty).Trim();
     }
 }

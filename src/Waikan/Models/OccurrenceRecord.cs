@@ -6,7 +6,9 @@ public sealed record OccurrenceRecord(
     DateTimeOffset LocalTime,
     string LocalDay,
     string Source,
-    string Keyword)
+    string Keyword,
+    string SyncId = "",
+    bool Synced = false)
 {
     public string SourceLabel => Source == AudioCaptureSourceSystem
         ? "系统声音"

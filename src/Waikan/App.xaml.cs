@@ -15,6 +15,7 @@ public partial class App : System.Windows.Application
     private SettingsService? _settingsService;
     private AppSettings? _settings;
     private DatabaseService? _database;
+    private CloudSyncService? _cloudSync;
     private AutoStartService? _autoStart;
     private AudioDeviceService? _audioDevices;
     private ThemeService? _theme;
@@ -99,6 +100,7 @@ public partial class App : System.Windows.Application
 
             _database = new DatabaseService(_paths.DatabasePath, _log);
             await _database.InitializeAsync();
+            _cloudSync = new CloudSyncService(_database, _log);
 
             _autoStart = new AutoStartService(_paths, _log);
             _audioDevices = new AudioDeviceService(_log);
@@ -111,6 +113,7 @@ public partial class App : System.Windows.Application
                 _settings,
                 _settingsService,
                 _database,
+                _cloudSync,
                 _log,
                 dialogs,
                 _autoStart,
@@ -248,6 +251,7 @@ public partial class App : System.Windows.Application
             }
 
             _viewModel?.Dispose();
+            _cloudSync?.Dispose();
 
             if (_coordinator is not null)
             {

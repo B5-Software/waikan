@@ -1,5 +1,6 @@
 using Waikan.Models;
 using Waikan.Services;
+using Microsoft.Data.Sqlite;
 
 namespace Waikan.Tests;
 
@@ -113,6 +114,60 @@ public sealed class DatabaseServiceTests
 
             await Task.WhenAll(tasks);
             Assert.Equal(16, await database.GetCountForDayAsync("2026-10-22"));
+        }
+        finally
+        {
+            TestInfrastructure.TryDeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task Version1_Database_Is_Migrated_And_Queued_For_Sync()
+    {
+        var root = TestInfrastructure.CreateTempDirectory();
+        try
+        {
+            var databasePath = Path.Combine(root, "waikan.db");
+            var utcMs = new DateTimeOffset(2026, 10, 20, 8, 0, 0, TimeSpan.Zero).ToUnixTimeMilliseconds();
+            await using (var connection = new SqliteConnection($"Data Source={databasePath}"))
+            {
+                await connection.OpenAsync();
+                await using var command = connection.CreateCommand();
+                command.CommandText = """
+                    CREATE TABLE occurrences (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        occurred_at_utc_ms INTEGER NOT NULL,
+                        local_day TEXT NOT NULL,
+                        local_offset_minutes INTEGER NOT NULL,
+                        source TEXT NOT NULL,
+                        keyword TEXT NOT NULL,
+                        created_at_utc_ms INTEGER NOT NULL
+                    );
+                    INSERT INTO occurrences
+                        (occurred_at_utc_ms, local_day, local_offset_minutes, source, keyword, created_at_utc_ms)
+                    VALUES
+                        ($utcMs, '2026-10-20', 480, 'microphone', '外刊', $utcMs);
+                    PRAGMA user_version=1;
+                    """;
+                command.Parameters.AddWithValue("$utcMs", utcMs);
+                await command.ExecuteNonQueryAsync();
+            }
+
+            var log = TestInfrastructure.CreateLog(root);
+            var database = new DatabaseService(databasePath, log);
+            await database.InitializeAsync();
+
+            Assert.Equal(1, await database.GetPendingCountAsync());
+            var pending = await database.GetPendingOccurrencesAsync();
+            var record = Assert.Single(pending);
+            Assert.False(string.IsNullOrWhiteSpace(record.SyncId));
+            Assert.Equal("2026-10-20", record.LocalDay);
+            Assert.Equal("外刊", record.Keyword);
+
+            var updated = await database.MarkSyncedAsync(new[] { record.SyncId });
+            Assert.Equal(1, updated);
+            Assert.Equal(0, await database.GetPendingCountAsync());
+            Assert.NotNull(await database.GetLastSyncedAtAsync());
         }
         finally
         {

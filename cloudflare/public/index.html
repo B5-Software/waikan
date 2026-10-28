@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0b0e13">
+  <meta name="description" content="这个词在外刊中 · 云端计数查看器">
+  <title>外刊 · 云端计数</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="page-atmosphere" aria-hidden="true">
+    <span class="glow glow-a"></span>
+    <span class="glow glow-b"></span>
+    <span class="grain"></span>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="外刊云端计数首页">
+      <span class="brand-mark" aria-hidden="true">外</span>
+      <span class="brand-copy">
+        <strong>外刊</strong>
+        <small>Cloud View</small>
+      </span>
+    </a>
+    <div class="toolbar">
+      <span class="connection" id="connection" role="status" aria-live="polite">
+        <i></i>
+        <span id="connectionText">连接中</span>
+      </span>
+      <span class="pair-pill" id="pairPill">外刊 · 云端计数</span>
+      <button class="icon-button" id="refreshButton" type="button" aria-label="刷新数据" title="刷新数据">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 4v5h5M4 13a8.1 8.1 0 0 0 15.5 2M20 20v-5h-5"/></svg>
+      </button>
+      <button class="icon-button theme-button" id="themeButton" type="button" aria-label="切换深浅色主题" title="切换主题">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5 8.5 8.5 0 1 0 20.5 14.5Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" class="layout">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          <span id="todayLabel">正在读取日期</span>
+          <span class="eyebrow-sep">/</span>
+          <span>MICROPHONE CAPTURE</span>
+        </div>
+        <h1>今天，<em>外刊</em><br>出现了</h1>
+        <div class="hero-count" aria-live="polite">
+          <span class="hero-number" id="todayCount">0</span>
+          <span class="hero-unit">次</span>
+        </div>
+        <p class="hero-note" id="heroNote">这是一份只记录关键词的安静档案。所有识别都在本机完成，这里只接收时间与计数。</p>
+        <div class="hero-meta">
+          <span class="meta-item">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span id="lastSync">尚未同步</span>
+          </span>
+          <span class="timezone" id="timezoneLabel">Asia/Shanghai</span>
+        </div>
+      </div>
+
+      <aside class="week-card" aria-label="过去七天概览">
+        <div class="week-head">
+          <span>过去 7 天</span>
+          <strong id="weekTotal">0</strong>
+        </div>
+        <div class="mini-bars" id="miniBars"></div>
+        <div class="week-foot">
+          <span>累计 <b id="totalAll">0</b> 次</span>
+          <span><b id="activeDaysAll">0</b> 天有记录</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="metric-grid" id="metricGrid" aria-label="关键指标"></section>
+
+    <section class="panel trend-panel">
+      <header class="panel-head">
+        <div>
+          <p class="kicker">RHYTHM</p>
+          <h2>出现趋势</h2>
+          <p class="panel-sub">点击任意柱形，查看当天的全部时间点</p>
+        </div>
+        <div class="panel-actions">
+          <div class="segmented" id="rangeSwitch" role="group" aria-label="统计范围">
+            <button type="button" data-days="7">7 天</button>
+            <button type="button" data-days="30" class="is-active">30 天</button>
+            <button type="button" data-days="90">90 天</button>
+          </div>
+          <button class="text-button" id="exportButton" type="button">导出 CSV</button>
+        </div>
+      </header>
+      <div class="chart-legend">
+        <span><i class="legend-mark today"></i>今天</span>
+        <span><i class="legend-mark"></i>有记录</span>
+      </div>
+      <div class="bar-chart" id="dailyChart" role="img" aria-label="每日外刊出现次数柱状图"></div>
+      <div class="chart-labels" id="chartLabels"></div>
+    </section>
+
+    <div class="grid-two">
+      <section class="panel heat-panel">
+        <header class="panel-head compact">
+          <div>
+            <p class="kicker">CALENDAR</p>
+            <h2>热度日历</h2>
+            <p class="panel-sub">过去 90 天 · 颜色越深出现越多</p>
+          </div>
+        </header>
+        <div class="heatmap-shell">
+          <div class="heatmap-day-labels" aria-hidden="true">
+            <span>一</span><span></span><span>三</span><span></span><span>五</span><span></span><span>日</span>
+          </div>
+          <div class="heatmap-wrap" id="heatmap"></div>
+        </div>
+        <div class="heat-legend"><span>少</span><i class="level-0"></i><i class="level-1"></i><i class="level-2"></i><i class="level-3"></i><i class="level-4"></i><span>多</span></div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head compact">
+          <div>
+            <p class="kicker">TIME OF DAY</p>
+            <h2>时段分布</h2>
+            <p class="panel-sub" id="hoursSub">当前统计范围 · 按小时汇总</p>
+          </div>
+        </header>
+        <div class="hour-chart" id="hourChart" role="img" aria-label="按小时统计的出现次数"></div>
+      </section>
+    </div>
+
+    <div class="grid-two">
+      <section class="panel recent-panel">
+        <header class="panel-head compact">
+          <div>
+            <p class="kicker">LATEST</p>
+            <h2>最近出现</h2>
+            <p class="panel-sub">全站最新 12 条记录</p>
+          </div>
+          <button class="text-button" id="openTodayButton" type="button">今天明细</button>
+        </header>
+        <div class="recent-list" id="recentList"></div>
+      </section>
+
+      <section class="panel">
+        <header class="panel-head compact">
+          <div>
+            <p class="kicker">OVERVIEW</p>
+            <h2>数据概览</h2>
+            <p class="panel-sub">当前统计范围的构成</p>
+          </div>
+        </header>
+        <div class="source-block" id="sourceBlock"></div>
+        <dl class="summary-list" id="summaryList"></dl>
+      </section>
+    </div>
+
+    <section class="panel pair-panel">
+      <div>
+        <p class="kicker">PAIRING</p>
+        <h2>这个页面属于一个客户端</h2>
+        <p>在桌面端「设置 → Cloudflare 查看器」中填入站点地址和配对密钥，数据就会自动汇入这里。</p>
+      </div>
+      <div class="endpoint-display">
+        <span>站点地址</span>
+        <code id="endpointDisplay">—</code>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>本地识别 · 云端汇总 · 只有时间与计数</span>
+      <span class="footer-sep">·</span>
+      <span id="footerPair">外刊 · 云端计数</span>
+      <span class="footer-sep">·</span>
+      <span id="footerUpdated">等待第一次同步</span>
+    </footer>
+  </main>
+
+  <dialog class="day-dialog" id="dayDialog" aria-labelledby="dialogTitle">
+    <div class="dialog-head">
+      <div>
+        <p class="kicker">DAY DETAIL</p>
+        <h2 id="dialogTitle">当天明细</h2>
+        <p id="dialogSummary"></p>
+      </div>
+      <button class="icon-button" id="closeDialog" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialog-body" id="dialogBody"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
